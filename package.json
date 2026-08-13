@@ -1,8 +1,13 @@
 {
   "name": "ai-collections-reconciliation-platform",
   "version": "1.0.0",
+  "private": true,
+  "type": "module",
   "description": "AI Collections & Reconciliation Platform for Pakistani Retail Shops",
-  "main": "server/src/server.js",
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
     "dev:server": "npm --prefix server run dev",
     "dev:client": "npm --prefix client run dev",
