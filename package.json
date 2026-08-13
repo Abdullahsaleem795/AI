@@ -1,0 +1,23 @@
+{
+  "name": "ai-collections-reconciliation-platform",
+  "version": "1.0.0",
+  "description": "AI Collections & Reconciliation Platform for Pakistani Retail Shops",
+  "main": "server/src/server.js",
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "test": "npm --prefix server run test",
+    "seed": "npm --prefix server run seed"
+  },
+  "keywords": [
+    "khata",
+    "reconciliation",
+    "pakistan",
+    "raast",
+    "retail",
+    "ai"
+  ],
+  "author": "Antigravity AI",
+  "license": "ISC"
+}
