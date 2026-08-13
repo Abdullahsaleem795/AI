@@ -3,6 +3,12 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../src/app.js';
 import { jest } from '@jest/globals';
+import crypto from 'crypto';
+
+const testSecret = process.env.RAAST_WEBHOOK_SECRET || 'sandbox_raast_webhook_secret_67890';
+const generateSignature = (payload) => {
+  return crypto.createHmac('sha256', testSecret).update(JSON.stringify(payload)).digest('hex');
+};
 
 describe('MASTER DEMO SCENARIO & END-TO-END VERIFICATION (Prompt Step 47)', () => {
   jest.setTimeout(30000); // 30 seconds for normal DB operations
@@ -146,6 +152,7 @@ describe('MASTER DEMO SCENARIO & END-TO-END VERIFICATION (Prompt Step 47)', () =
     const res = await request(app)
       .post('/api/webhooks/raast')
       .set('x-tenant-id', tenantId)
+      .set('x-webhook-signature', generateSignature(webhookPayload))
       .send(webhookPayload);
 
     expect(res.status).toBe(200);
@@ -173,6 +180,7 @@ describe('MASTER DEMO SCENARIO & END-TO-END VERIFICATION (Prompt Step 47)', () =
     const res = await request(app)
       .post('/api/webhooks/raast')
       .set('x-tenant-id', tenantId)
+      .set('x-webhook-signature', generateSignature(webhookPayload))
       .send(webhookPayload);
 
     expect(res.status).toBe(200);
@@ -197,8 +205,8 @@ describe('MASTER DEMO SCENARIO & END-TO-END VERIFICATION (Prompt Step 47)', () =
 
     // Fire two identical requests at the exact same time
     const [res1, res2] = await Promise.all([
-      request(app).post('/api/webhooks/raast').set('x-tenant-id', tenantId).send(concurrentPayload),
-      request(app).post('/api/webhooks/raast').set('x-tenant-id', tenantId).send(concurrentPayload)
+      request(app).post('/api/webhooks/raast').set('x-tenant-id', tenantId).set('x-webhook-signature', generateSignature(concurrentPayload)).send(concurrentPayload),
+      request(app).post('/api/webhooks/raast').set('x-tenant-id', tenantId).set('x-webhook-signature', generateSignature(concurrentPayload)).send(concurrentPayload)
     ]);
 
     // One should succeed, the other should fail or gracefully ignore (return 200 but not process)
@@ -232,7 +240,7 @@ describe('MASTER DEMO SCENARIO & END-TO-END VERIFICATION (Prompt Step 47)', () =
       status: 'SUCCESS'
     };
 
-    const res = await request(app).post('/api/webhooks/raast').set('x-tenant-id', tenantId).send(ambiguousPayload);
+    const res = await request(app).post('/api/webhooks/raast').set('x-tenant-id', tenantId).set('x-webhook-signature', generateSignature(ambiguousPayload)).send(ambiguousPayload);
     
     expect(res.status).toBe(200);
     expect(res.body.data.reconciled).toBe(false); // Must NOT auto reconcile
@@ -251,7 +259,7 @@ describe('MASTER DEMO SCENARIO & END-TO-END VERIFICATION (Prompt Step 47)', () =
     await request(app).post('/api/payments/request').set('Authorization', `Bearer ${token}`)
       .send({ customerId: bilalId, amount: 10000, reference: 'BILAL-REF-001' });
 
-    const explicitRes = await request(app).post('/api/webhooks/raast').set('x-tenant-id', tenantId).send(explicitPayload);
+    const explicitRes = await request(app).post('/api/webhooks/raast').set('x-tenant-id', tenantId).set('x-webhook-signature', generateSignature(explicitPayload)).send(explicitPayload);
     expect(explicitRes.body.data.reconciled).toBe(true);
   });
 

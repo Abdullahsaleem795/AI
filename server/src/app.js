@@ -3,6 +3,8 @@ import cors from 'cors';
 import { env } from './config/env.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 // Route Imports
 import authRoutes from './modules/auth/auth.routes.js';
@@ -18,8 +20,28 @@ import reportRoutes from './modules/reports/reports.routes.js';
 const app = express();
 
 // Security & Parsing Middlewares
+app.use(helmet());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', limiter);
+
+const allowedOrigins = env.NODE_ENV === 'production' 
+  ? [env.CLIENT_URL] 
+  : [env.CLIENT_URL, 'http://localhost:5173'];
+
 app.use(cors({
-  origin: env.CLIENT_URL || '*',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());

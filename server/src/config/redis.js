@@ -1,3 +1,5 @@
+import { createClient } from 'redis';
+import { env } from './env.js';
 import logger from '../utils/logger.js';
 
 // Simple in-memory fallback cache for rate-limiting, queues, and short-lived locks
@@ -38,4 +40,19 @@ class InMemoryRedisAdapter {
   }
 }
 
-export const redisClient = new InMemoryRedisAdapter();
+let client;
+
+if (process.env.NODE_ENV === 'test') {
+  client = new InMemoryRedisAdapter();
+} else {
+  client = createClient({ url: env.REDIS_URL });
+  
+  client.on('error', (err) => logger.error('Redis Client Error', err));
+  client.on('connect', () => logger.info('Connected to Redis'));
+  
+  client.connect().catch((err) => {
+    logger.error('Failed to connect to Redis, continuing without cache.', err);
+  });
+}
+
+export const redisClient = client;

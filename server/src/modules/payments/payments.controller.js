@@ -43,6 +43,13 @@ export const recordManualPayment = async (req, res, next) => {
 
     await payment.save();
 
+    if (saleId) {
+      await PaymentRequest.updateMany(
+        { tenantId, saleId, status: { $in: ['CREATED', 'SENT', 'OPENED'] } },
+        { $set: { status: 'PAID' } }
+      );
+    }
+
     // Post CREDIT to Ledger
     await LedgerService.recordEvent({
       tenantId,
@@ -165,6 +172,54 @@ export const getPayments = async (req, res, next) => {
         }
       }
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const reversePayment = async (req, res, next) => {
+  try {
+    const tenantId = req.tenantId;
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const hasPermission = req.user.roles && req.user.roles.some(r => ['OWNER', 'MANAGER', 'ADMIN'].includes(r));
+    if (!hasPermission) {
+      throw new AppError('Unauthorized to reverse payments.', 403, 'FORBIDDEN');
+    }
+
+    if (!reason) {
+      throw new AppError('Reversal reason is required.', 400, 'VALIDATION_ERROR');
+    }
+
+    const payment = await Payment.findOne({ _id: id, tenantId });
+    if (!payment) {
+      throw new AppError('Payment not found.', 404, 'NOT_FOUND');
+    }
+
+    if (payment.status !== 'SUCCESS') {
+      throw new AppError('Only SUCCESS payments can be reversed.', 400, 'INVALID_STATE');
+    }
+
+    payment.status = 'REVERSED';
+    payment.metadata = { ...payment.metadata, reversalReason: reason, reversedAt: new Date(), reversedBy: req.user.userId };
+    await payment.save();
+
+    if (payment.customerId) {
+      await LedgerService.recordEvent({
+        tenantId,
+        customerId: payment.customerId,
+        type: 'REVERSAL',
+        direction: 'DEBIT', // Reverse the credit
+        amount: payment.amount,
+        referenceType: 'PAYMENT',
+        referenceId: payment._id.toString(),
+        description: `Payment reversal: ${reason}`,
+        createdBy: req.user.userId
+      });
+    }
+
+    res.status(200).json({ success: true, data: { payment } });
   } catch (error) {
     next(error);
   }

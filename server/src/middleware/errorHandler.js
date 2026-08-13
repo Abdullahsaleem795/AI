@@ -10,12 +10,17 @@ export const errorHandler = (err, req, res, next) => {
     details: err.details || null
   });
 
+  const isProd = process.env.NODE_ENV === 'production';
+  const message = isProd && statusCode === 500 && !err.isOperational
+    ? 'An unexpected server error occurred.'
+    : err.message || 'An unexpected server error occurred.';
+
   res.status(statusCode).json({
     success: false,
     error: {
       code: errorCode,
-      message: err.message || 'An unexpected server error occurred.',
-      details: err.details || undefined
+      message,
+      details: isProd ? undefined : err.details
     },
     requestId
   });
@@ -27,5 +32,6 @@ export class AppError extends Error {
     this.statusCode = statusCode;
     this.code = code;
     this.details = details;
+    this.isOperational = true;
   }
 }

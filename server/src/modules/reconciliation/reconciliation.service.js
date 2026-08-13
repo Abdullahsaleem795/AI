@@ -42,10 +42,15 @@ export class ReconciliationEngine {
       provider,
       providerTransactionId: providerTransactionId || `TX-${Date.now()}`,
       reference: merchantReference,
-      status: 'PROCESSING',
+      status: paymentPayload.status === 'SUCCESS' ? 'PROCESSING' : paymentPayload.status || 'FAILED',
       metadata
     });
     await payment.save();
+
+    if (payment.status !== 'PROCESSING') {
+      logger.warn(`Skipping reconciliation for non-successful payment: ${payment.providerTransactionId}`);
+      return { payment, reconciliation: { status: 'SKIPPED_DUE_TO_FAILURE' } };
+    }
 
     // Signal Match 1: Exact Merchant Reference match with PaymentRequest
     if (merchantReference) {

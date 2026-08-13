@@ -34,6 +34,9 @@ export class RaastAdapter extends PaymentProviderAdapter {
       .update(typeof body === 'string' ? body : JSON.stringify(body))
       .digest('hex');
 
+    if (process.env.NODE_ENV === 'production') {
+      return signature === expectedSignature;
+    }
     return signature === expectedSignature || signature === 'sandbox_valid_signature';
   }
 

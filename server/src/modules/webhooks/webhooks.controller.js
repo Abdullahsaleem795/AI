@@ -14,7 +14,7 @@ export const handlePaymentWebhook = async (req, res, next) => {
 
     // Validate Signature
     const isValid = raastAdapter.verifyWebhookSignature(req.headers, body);
-    if (!isValid && process.env.NODE_ENV === 'production') {
+    if (!isValid) {
       return res.status(401).json({ success: false, error: 'INVALID_SIGNATURE' });
     }
 
@@ -36,9 +36,10 @@ export const handlePaymentWebhook = async (req, res, next) => {
       success: true,
       data: {
         received: true,
-        reconciled: result.reconciliation.status === 'AUTO_RECONCILED',
-        status: result.reconciliation.status,
-        paymentId: result.payment._id
+        reconciled: result.reconciliation ? result.reconciliation.status === 'AUTO_RECONCILED' : false,
+        status: result.reconciliation ? result.reconciliation.status : null,
+        paymentId: result.payment._id,
+        duplicate: result.duplicate || false
       }
     });
   } catch (error) {
