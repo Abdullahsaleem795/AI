@@ -1,0 +1,12 @@
+.env
+.env.*
+node_modules
+coverage
+dist
+build
+.git
+logs
+*.log
+mongo_data
+redis_data
+.mongodb-binaries
