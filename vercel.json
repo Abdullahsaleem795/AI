@@ -1,5 +1,9 @@
 {
   "version": 2,
+  "framework": null,
+  "buildCommand": "npm --prefix client run build",
+  "outputDirectory": "client/dist",
+  "installCommand": "npm install",
   "functions": {
     "api/index.js": {
       "runtime": "nodejs20.x",
@@ -15,6 +19,5 @@
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ],
-  "outputDirectory": "client/dist"
+  ]
 }
